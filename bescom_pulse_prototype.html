@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>BESCOM Pulse — Intelligent Grid & Infrastructure Copilot</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --border: rgba(99,179,237,0.15);
+    --border2: rgba(99,179,237,0.3);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --green: #10b981;
+    --green-bg: rgba(16,185,129,0.12);
+    --yellow: #f59e0b;
+    --yellow-bg: rgba(245,158,11,0.12);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.12);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59,130,246,0.12);
+    --cyan: #06b6d4;
+    --accent: #63b3ed;
+    --purple: #8b5cf6;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:13px; min-height:100vh; overflow-x:hidden; }
+
+  .app { display:flex; height:100vh; overflow:hidden; }
+  .sidebar { width:220px; min-width:220px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; }
+  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .content { flex:1; overflow-y:auto; padding:20px; }
+
+  .logo { padding:16px; border-bottom:1px solid var(--border); }
+  .logo-title { font-size:16px; font-weight:700; color:#fff; letter-spacing:-0.3px; }
+  .logo-title span { color:var(--accent); }
+  .logo-sub { font-size:10px; color:var(--text3); margin-top:2px; letter-spacing:0.5px; text-transform:uppercase; }
+  .nav { padding:12px 8px; flex:1; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; color:var(--text2); transition:all 0.2s; margin-bottom:2px; font-size:12.5px; }
+  .nav-item:hover { background:var(--bg3); color:var(--text); }
+  .nav-item.active { background:var(--blue-bg); color:var(--accent); border:1px solid rgba(99,179,237,0.2); }
+  .nav-icon { width:18px; height:18px; flex-shrink:0; opacity:0.8; }
+  .nav-section { font-size:10px; color:var(--text3); letter-spacing:1px; text-transform:uppercase; padding:12px 10px 6px; margin-top:4px; }
+
+  .topbar-title { font-size:14px; font-weight:600; color:#fff; }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .status-pill { display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:500; }
+  .status-live { background:rgba(16,185,129,0.15); color:var(--green); border:1px solid rgba(16,185,129,0.25); }
+  .pulse-dot { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .time-display { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text3); }
+
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+
+  .card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .card-title { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; font-weight:500; }
+  .card-value { font-size:28px; font-weight:700; color:#fff; letter-spacing:-1px; font-family:'JetBrains Mono',monospace; }
+  .card-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+  .card-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .badge-green { background:var(--green-bg); color:var(--green); }
+  .badge-yellow { background:var(--yellow-bg); color:var(--yellow); }
+  .badge-red { background:var(--red-bg); color:var(--red); }
+  .badge-blue { background:var(--blue-bg); color:var(--blue); }
+
+  .zone-map { position:relative; background:var(--bg3); border-radius:10px; overflow:hidden; }
+  .zone-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; padding:3px; }
+  .zone-cell { aspect-ratio:1.4; border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; transition:all 0.2s; position:relative; }
+  .zone-cell:hover { transform:scale(1.05); z-index:2; }
+  .zone-cell .z-name { font-size:9px; font-weight:600; text-align:center; line-height:1.2; }
+  .zone-cell .z-load { font-size:8px; opacity:0.8; font-family:'JetBrains Mono',monospace; }
+  .zone-green { background:rgba(16,185,129,0.25); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7; }
+  .zone-yellow { background:rgba(245,158,11,0.25); border:1px solid rgba(245,158,11,0.4); color:#fcd34d; }
+  .zone-red { background:rgba(239,68,68,0.3); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; animation:zone-pulse 2s infinite; }
+  @keyframes zone-pulse { 0%,100%{background:rgba(239,68,68,0.3)} 50%{background:rgba(239,68,68,0.45)} }
+
+  .alert-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:8px; margin-bottom:8px; cursor:pointer; transition:all 0.2s; border:1px solid transparent; }
+  .alert-item:hover { border-color:var(--border); background:var(--bg3); }
+  .alert-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+  .alert-green { background:var(--green); }
+  .alert-yellow { background:var(--yellow); }
+  .alert-red { background:var(--red); animation:pulse 1.5s infinite; }
+  .alert-body { flex:1; }
+  .alert-title { font-size:12px; font-weight:500; color:var(--text); }
+  .alert-time { font-size:11px; color:var(--text3); margin-top:2px; }
+  .alert-action { font-size:11px; color:var(--accent); margin-top:4px; text-decoration:underline; cursor:pointer; }
+
+  .tier-flow { display:flex; gap:0; align-items:stretch; margin:12px 0; }
+  .tier-box { flex:1; padding:14px; border-radius:0; border-right:1px solid var(--border); position:relative; }
+  .tier-box:first-child { border-radius:10px 0 0 10px; }
+  .tier-box:last-child { border-radius:0 10px 10px 0; border-right:none; }
+  .tier-num { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+  .tier-name { font-size:11px; font-weight:600; color:#fff; margin-bottom:4px; }
+  .tier-desc { font-size:10px; color:var(--text3); line-height:1.4; }
+  .tier-1 { background:linear-gradient(135deg,rgba(16,185,129,0.1),var(--bg3)); border-color:rgba(16,185,129,0.2); }
+  .tier-2 { background:linear-gradient(135deg,rgba(245,158,11,0.1),var(--bg3)); border-color:rgba(245,158,11,0.2); }
+  .tier-3 { background:linear-gradient(135deg,rgba(59,130,246,0.1),var(--bg3)); border-color:rgba(59,130,246,0.2); }
+  .tier-4 { background:linear-gradient(135deg,rgba(239,68,68,0.1),var(--bg3)); border-color:rgba(239,68,68,0.2); }
+  .tier-t1 { color:var(--green); }
+  .tier-t2 { color:var(--yellow); }
+  .tier-t3 { color:var(--blue); }
+  .tier-t4 { color:var(--red); }
+
+  .chat-wrapper { display:flex; flex-direction:column; height:calc(100vh - 160px); }
+  .chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .msg { max-width:80%; }
+  .msg-user { align-self:flex-end; }
+  .msg-bot { align-self:flex-start; }
+  .msg-bubble { padding:10px 14px; border-radius:12px; font-size:12.5px; line-height:1.6; }
+  .msg-user .msg-bubble { background:var(--blue); color:#fff; border-radius:12px 12px 2px 12px; }
+  .msg-bot .msg-bubble { background:var(--bg3); color:var(--text); border:1px solid var(--border); border-radius:2px 12px 12px 12px; }
+  .msg-bot .msg-bubble strong { color:var(--accent); }
+  .msg-bot .msg-bubble .inline-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; font-weight:600; margin:0 2px; }
+  .msg-meta { font-size:10px; color:var(--text3); margin-top:4px; padding:0 4px; }
+  .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 16px; border-top:1px solid var(--border); }
+  .suggestion-chip { padding:6px 12px; border-radius:20px; border:1px solid var(--border2); color:var(--accent); font-size:11px; cursor:pointer; transition:all 0.2s; background:transparent; }
+  .suggestion-chip:hover { background:var(--blue-bg); }
+  .chat-input-row { display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+  .chat-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:12.5px; outline:none; }
+  .chat-input:focus { border-color:var(--accent); }
+  .chat-send { background:var(--blue); border:none; border-radius:8px; padding:8px 16px; color:#fff; font-weight:600; cursor:pointer; font-size:12px; transition:opacity 0.2s; }
+  .chat-send:hover { opacity:0.85; }
+  .thinking { display:flex; gap:4px; align-items:center; padding:6px 0; }
+  .thinking span { width:6px; height:6px; border-radius:50%; background:var(--accent); animation:bounce 0.8s infinite; }
+  .thinking span:nth-child(2) { animation-delay:0.15s; }
+  .thinking span:nth-child(3) { animation-delay:0.3s; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+  .infra-map { position:relative; background:var(--bg3); border-radius:10px; overflow:hidden; min-height:280px; }
+  .demand-node { position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; cursor:pointer; transition:all 0.3s; }
+  .infra-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
+  .legend-dot { width:10px; height:10px; border-radius:50%; }
+  .optimal-marker { position:absolute; width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:10px; transform:translate(-50%,-50%); animation:glow-pulse 2s infinite; z-index:3; }
+  @keyframes glow-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)} 50%{box-shadow:0 0 0 8px rgba(16,185,129,0)} }
+
+  .soc-bar { height:12px; border-radius:6px; background:var(--bg); overflow:hidden; margin:6px 0; }
+  .soc-fill { height:100%; border-radius:6px; transition:width 1s ease; }
+  .soc-green { background:linear-gradient(90deg,#10b981,#34d399); }
+  .soc-yellow { background:linear-gradient(90deg,#f59e0b,#fbbf24); }
+  .soc-red { background:linear-gradient(90deg,#ef4444,#f87171); }
+
+  .progress { height:8px; border-radius:4px; background:var(--bg); overflow:hidden; margin:4px 0; }
+  .progress-fill { height:100%; border-radius:4px; transition:width 0.8s ease; }
+  .progress-green { background:var(--green); }
+  .progress-yellow { background:var(--yellow); }
+  .progress-red { background:var(--red); }
+  .progress-blue { background:var(--blue); }
+
+  .btn { padding:7px 14px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; border:none; font-family:'Space Grotesk',sans-serif; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:hover { opacity:0.85; }
+  .btn-success { background:rgba(16,185,129,0.15); color:var(--green); border:1px solid rgba(16,185,129,0.3); }
+  .btn-success:hover { background:rgba(16,185,129,0.25); }
+  .btn-warn { background:rgba(245,158,11,0.15); color:var(--yellow); border:1px solid rgba(245,158,11,0.3); }
+  .btn-danger { background:rgba(239,68,68,0.15); color:var(--red); border:1px solid rgba(239,68,68,0.3); }
+  .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--bg3); }
+  .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+
+  .divider { height:1px; background:var(--border); margin:16px 0; }
+
+  .roadmap-phase { display:flex; gap:14px; margin-bottom:16px; }
+  .phase-dot-col { display:flex; flex-direction:column; align-items:center; }
+  .phase-dot { width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+  .phase-line { width:2px; flex:1; background:var(--border); margin:4px 0; }
+  .phase-content { flex:1; padding-bottom:16px; }
+  .phase-title { font-size:13px; font-weight:600; color:#fff; }
+  .phase-dur { font-size:11px; color:var(--text3); margin:2px 0 6px; }
+  .phase-desc { font-size:11px; color:var(--text2); line-height:1.5; }
+
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--bg2); border:1px solid var(--border2); border-radius:10px; padding:12px 16px; font-size:12px; color:var(--text); z-index:1000; max-width:280px; transform:translateY(100px); opacity:0; transition:all 0.3s; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast-title { font-weight:600; color:var(--accent); margin-bottom:4px; }
+
+  .mcp-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); color:#a78bfa; font-size:10px; font-weight:600; }
+  .mcp-dot { width:5px; height:5px; border-radius:50%; background:#a78bfa; animation:pulse 2s infinite; }
+
+  @media (max-width:700px) {
+    .sidebar { width:160px; min-width:160px; }
+    .grid-3,.grid-4 { grid-template-columns:1fr 1fr; }
+    .tier-flow { flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">BESCOM <span>Pulse</span></div>
+    <div class="logo-sub">Grid &amp; EV Copilot</div>
+  </div>
+  <div class="nav">
+    <div class="nav-section">Operations</div>
+    <div class="nav-item active" onclick="showSection('overview',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" onclick="showSection('zones',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      Zone Monitor
+    </div>
+    <div class="nav-item" onclick="showSection('optimizer',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Optimizer
+    </div>
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item" onclick="showSection('chat',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      MCP Chat
+    </div>
+    <div class="nav-item" onclick="showSection('infra',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      Infra Planner
+    </div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showSection('roadmap',this)">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Roadmap
+    </div>
+  </div>
+  <div style="padding:12px;border-top:1px solid var(--border);font-size:11px;">
+    <div style="color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-size:10px;">Live Metrics</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);">Active EVs</span><span style="font-family:'JetBrains Mono',monospace;color:var(--accent)" id="sb-evs">2,847</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="color:var(--text2);">Grid Load</span><span style="font-family:'JetBrains Mono',monospace;color:var(--yellow)" id="sb-load">73%</span></div>
+    <div style="display:flex;justify-content:space-between;"><span style="color:var(--text2);">Alerts</span><span style="font-family:'JetBrains Mono',monospace;color:var(--red)" id="sb-alerts">3</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="topbar-title" id="page-title">System Overview</div>
+      <div class="mcp-badge"><div class="mcp-dot"></div>MCP Active</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill status-live"><div class="pulse-dot"></div>Live Feed</div>
+      <div class="time-display" id="clock">18:42:07</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="section active" id="section-overview">
+      <div class="grid-4" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Total Zones</div><div class="card-badge badge-blue">BLR</div></div>
+          <div class="card-value">15</div>
+          <div class="card-sub">Bengaluru distribution zones</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Active EVs</div><div class="card-badge badge-green">+12% today</div></div>
+          <div class="card-value" id="ov-evs">2,847</div>
+          <div class="card-sub">Actively charging now</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Grid Stress</div><div class="card-badge badge-yellow">Moderate</div></div>
+          <div class="card-value" id="ov-stress">73%</div>
+          <div class="card-sub">Avg zone utilisation</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Critical Zones</div><div class="card-badge badge-red">Action req.</div></div>
+          <div class="card-value" id="ov-crit">3</div>
+          <div class="card-sub">At or above 90% capacity</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Demand vs Capacity — Past 12h</div></div>
+          <canvas id="demandChart" height="120" role="img" aria-label="Demand vs capacity line chart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Active Alerts</div><div class="card-badge badge-red">3 critical</div></div>
+          <div class="alert-item" onclick="showSection('chat',document.querySelectorAll('.nav-item')[3]);loadChat('hsr')">
+            <div class="alert-dot alert-red"></div>
+            <div class="alert-body">
+              <div class="alert-title">HSR Layout — 92% capacity</div>
+              <div class="alert-time">2 min ago · Tier 2 response initiated</div>
+              <div class="alert-action">→ Ask MCP copilot</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot alert-red"></div>
+            <div class="alert-body">
+              <div class="alert-title">Koramangala — 91% capacity</div>
+              <div class="alert-time">5 min ago · 18 users notified for off-peak</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot alert-red"></div>
+            <div class="alert-body">
+              <div class="alert-title">Whitefield — 90% capacity</div>
+              <div class="alert-time">8 min ago · SoC cap applied to 42 sessions</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot alert-yellow"></div>
+            <div class="alert-body">
+              <div class="alert-title">Indiranagar — 78% capacity</div>
+              <div class="alert-time">15 min ago · Monitoring</div>
+            </div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot alert-green"></div>
+            <div class="alert-body">
+              <div class="alert-title">Jayanagar — 45% capacity</div>
+              <div class="alert-time">Normal operation</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Multi-Tier Optimization Engine — Current Status</div></div>
+        <div class="tier-flow">
+          <div class="tier-box tier-1">
+            <div class="tier-num tier-t1">Tier 1</div>
+            <div class="tier-name">Battery Optimization</div>
+            <div class="tier-desc">60% SoC cap active on 142 sessions</div>
+            <div style="margin-top:8px;"><span class="card-badge badge-green">Active</span></div>
+          </div>
+          <div class="tier-box tier-2">
+            <div class="tier-num tier-t2">Tier 2</div>
+            <div class="tier-name">Time-Shifted Pricing</div>
+            <div class="tier-desc">38 users offered off-peak incentive</div>
+            <div style="margin-top:8px;"><span class="card-badge badge-yellow">Active</span></div>
+          </div>
+          <div class="tier-box tier-3">
+            <div class="tier-num tier-t3">Tier 3</div>
+            <div class="tier-name">Spatial Redirection</div>
+            <div class="tier-desc">4 users redirected to green zones</div>
+            <div style="margin-top:8px;"><span class="card-badge badge-blue">Triggered</span></div>
+          </div>
+          <div class="tier-box tier-4">
+            <div class="tier-num tier-t4">Tier 4</div>
+            <div class="tier-name">Infra Trigger</div>
+            <div class="tier-desc">1 zone flagged for planning review</div>
+            <div style="margin-top:8px;"><span class="card-badge badge-red">1 Flag</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE MONITOR -->
+    <div class="section" id="section-zones">
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Zone Heatmap — Bengaluru</div>
+            <div style="display:flex;gap:6px;">
+              <span class="card-badge badge-green">● Green</span>
+              <span class="card-badge badge-yellow">● Yellow</span>
+              <span class="card-badge badge-red">● Critical</span>
+            </div>
+          </div>
+          <div class="zone-map"><div class="zone-grid" id="zone-grid"></div></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3);">Click a zone to view details</div>
+        </div>
+        <div class="card" id="zone-detail-card">
+          <div class="card-title" style="margin-bottom:12px;">Zone Details</div>
+          <div id="zone-detail-content">
+            <div style="color:var(--text3);font-size:12px;text-align:center;padding:40px 0;">Select a zone to see details</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">All Zones — Capacity Table</div></div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px 6px;color:var(--text3);font-weight:500;">Zone</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:500;">Capacity (MW)</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:500;">Load (MW)</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:500;">Utilisation</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:500;">Active EVs</th>
+                <th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:500;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="zone-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTIMIZER -->
+    <div class="section" id="section-optimizer">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><div class="card-title">4-Tier Decision Algorithm — Live Simulation</div></div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Trigger a grid stress event to watch the optimizer cascade through tiers in real time.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+          <button class="btn btn-warn" onclick="runSimulation('mild')">Simulate 80% Load</button>
+          <button class="btn btn-danger" onclick="runSimulation('severe')">Simulate 92% Load (Crisis)</button>
+          <button class="btn btn-ghost" onclick="resetSim()">Reset</button>
+        </div>
+        <div id="sim-output" style="font-size:12px;color:var(--text2);min-height:100px;">
+          <div style="color:var(--text3);">Run a simulation to see the optimizer in action.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">SoC Cap Optimizer</div><div class="card-badge badge-green">Tier 1</div></div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Drag the slider to see how SoC cap affects grid load and charging window.</div>
+          <div style="margin-bottom:6px;display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--text3);">SoC Cap</span><span id="soc-val" style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:600;">60%</span></div>
+          <input type="range" min="20" max="100" value="60" style="width:100%;margin-bottom:12px;" id="soc-slider" oninput="updateSoC(this.value)">
+          <div style="margin-bottom:4px;display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--text3);">Grid Load Reduction</span><span id="soc-load" style="color:var(--green);font-family:'JetBrains Mono',monospace;">-28%</span></div>
+          <div class="soc-bar"><div class="soc-fill soc-green" id="soc-bar-fill" style="width:40%;"></div></div>
+          <div style="margin-top:10px;font-size:11px;display:flex;justify-content:space-between;">
+            <span style="color:var(--text3);">Charging window</span><span id="soc-window" style="color:var(--text2);">2.1 hrs (vs 3.5 base)</span>
+          </div>
+          <div style="margin-top:4px;font-size:11px;display:flex;justify-content:space-between;">
+            <span style="color:var(--text3);">Battery life impact</span><span id="soc-battery" style="color:var(--green);">+15% longevity ✓</span>
+          </div>
+          <div style="margin-top:4px;font-size:11px;display:flex;justify-content:space-between;">
+            <span style="color:var(--text3);">User message</span><span id="soc-msg" style="color:var(--accent);">Extend battery life</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Pricing Incentive Engine</div><div class="card-badge badge-yellow">Tier 2</div></div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Off-peak incentive calculation for demand shifting.</div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text3);">Current zone load</span><span style="color:var(--red);font-family:'JetBrains Mono',monospace;">92% (HSR Layout)</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:12px;"><span style="color:var(--text3);">Off-peak window</span><span style="color:var(--accent);font-family:'JetBrains Mono',monospace;">23:00 – 05:00</span></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:10px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">User notification preview:</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6;">
+              <span style="color:var(--yellow);">⚡ Grid Alert:</span> Charge now at <strong style="color:#fff;">60% SoC for ₹8/kWh</strong> or wait until <strong style="color:#fff;">11 PM</strong> to charge to 80% for <strong style="color:var(--green);">₹5.5/kWh</strong> and save <strong style="color:var(--green);">₹31</strong>.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-success" onclick="showToast('Notification sent to 38 users in HSR Layout zone.','Incentive Dispatched')">Send to 38 Users</button>
+            <button class="btn btn-ghost" onclick="showToast('Incentive parameters recalculated.','Updated')">Recalculate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MCP CHAT -->
+    <div class="section" id="section-chat">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:600;">MCP Grid Copilot</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="mcp-badge"><div class="mcp-dot"></div>Model Context Protocol</div>
+            <div class="card-badge badge-green">Privacy-Preserving</div>
+          </div>
+        </div>
+        <div class="chat-wrapper" style="height:calc(100vh - 280px);min-height:400px;">
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg msg-bot">
+              <div class="msg-bubble">
+                🔋 <strong>BESCOM Pulse Copilot online.</strong> I have real-time access to grid telemetry, zone capacity, and optimization controls via MCP. All queries are processed on-premise — no PII leaves the network.<br><br>
+                Ask me anything about the grid — alerts, capacity, what actions to take.
+              </div>
+              <div class="msg-meta">System • now</div>
+            </div>
+          </div>
+          <div class="chat-suggestions" id="chat-suggestions">
+            <button class="suggestion-chip" onclick="sendChat('Why is HSR Layout showing a red alert?')">Why is HSR Layout red?</button>
+            <button class="suggestion-chip" onclick="sendChat('What should I do about Koramangala overload?')">Fix Koramangala overload</button>
+            <button class="suggestion-chip" onclick="sendChat('Which zones have capacity for redirection?')">Find green zones</button>
+            <button class="suggestion-chip" onclick="sendChat('Recommend new charging hub locations')">Infra recommendations</button>
+            <button class="suggestion-chip" onclick="sendChat('Apply 60% SoC cap to all critical zones')">Apply SoC caps</button>
+          </div>
+          <div class="chat-input-row">
+            <input class="chat-input" id="chat-input" placeholder="Ask the grid copilot anything…" onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="chat-send" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFRA PLANNER -->
+    <div class="section" id="section-infra">
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Unmet Demand Heatmap — Bengaluru</div></div>
+          <div class="infra-map" id="infra-map" style="height:280px;"></div>
+          <div class="infra-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(239,68,68,0.8);"></div>High unmet demand</div>
+            <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,0.7);"></div>Medium demand</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Optimal nodal point</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Nodal Recommendation Engine</div><div class="card-badge badge-green">Tier 4</div></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid rgba(16,185,129,0.2);">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Recommended Nodal Point</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace;">12.9279°N, 77.6271°E</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px;">Intersection: HSR Layout – Koramangala corridor</div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Algorithm factors:</div>
+          <div style="font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="color:var(--text2);">Demand centre of mass</span><span style="color:var(--accent);">12.93°N, 77.63°E</span></div>
+          <div class="progress" style="margin-bottom:10px;"><div class="progress-fill progress-blue" style="width:80%;"></div></div>
+          <div style="font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="color:var(--text2);">Feeder capacity proximity</span><span style="color:var(--green);">220 kV line within 1.2 km</span></div>
+          <div class="progress" style="margin-bottom:10px;"><div class="progress-fill progress-green" style="width:90%;"></div></div>
+          <div style="font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="color:var(--text2);">Load-distance cost function</span><span style="color:var(--yellow);">Minimised at 0.73 score</span></div>
+          <div class="progress" style="margin-bottom:12px;"><div class="progress-fill progress-yellow" style="width:73%;"></div></div>
+          <div style="background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;color:var(--text2);border:1px solid var(--border);">
+            <span style="color:var(--accent);font-weight:600;">CAPEX Optimised:</span> New 2-MW hub at this node avoids a full substation upgrade (~₹8.4 Cr saved vs next-best location).
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-success" onclick="showToast('Infra proposal sent to planning team.','Proposal Queued')">Queue for Review</button>
+            <button class="btn btn-ghost" onclick="showToast('Running alternate scenarios...','Computing')">Run Alternatives</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">5-Step Infrastructure Planning Pipeline</div></div>
+        <div style="display:flex;gap:0;overflow-x:auto;padding-bottom:4px;">
+          <div class="tier-box tier-1" style="min-width:130px;">
+            <div style="font-size:20px;margin-bottom:6px;">📍</div>
+            <div class="tier-name" style="font-size:11px;">Unmet Demand Heatmap</div>
+            <div class="tier-desc">Aggregate unfulfilled charge requests per zone</div>
+            <div style="margin-top:6px;"><span class="card-badge badge-green">Complete</span></div>
+          </div>
+          <div style="display:flex;align-items:center;color:var(--text3);padding:0 4px;">→</div>
+          <div class="tier-box tier-2" style="min-width:130px;">
+            <div style="font-size:20px;margin-bottom:6px;">⚖️</div>
+            <div class="tier-name" style="font-size:11px;">Centre of Mass Calc</div>
+            <div class="tier-desc">Weighted centroid of demand density</div>
+            <div style="margin-top:6px;"><span class="card-badge badge-green">Complete</span></div>
+          </div>
+          <div style="display:flex;align-items:center;color:var(--text3);padding:0 4px;">→</div>
+          <div class="tier-box tier-3" style="min-width:130px;">
+            <div style="font-size:20px;margin-bottom:6px;">🔌</div>
+            <div class="tier-name" style="font-size:11px;">Feeder Capacity Overlay</div>
+            <div class="tier-desc">Cross-reference HV feeder network proximity</div>
+            <div style="margin-top:6px;"><span class="card-badge badge-green">Complete</span></div>
+          </div>
+          <div style="display:flex;align-items:center;color:var(--text3);padding:0 4px;">→</div>
+          <div class="tier-box tier-4" style="min-width:130px;">
+            <div style="font-size:20px;margin-bottom:6px;">📌</div>
+            <div class="tier-name" style="font-size:11px;">Optimal Nodal Point</div>
+            <div class="tier-desc">Minimise load-distance cost function</div>
+            <div style="margin-top:6px;"><span class="card-badge badge-yellow">In Review</span></div>
+          </div>
+          <div style="display:flex;align-items:center;color:var(--text3);padding:0 4px;">→</div>
+          <div class="tier-box" style="min-width:130px;background:var(--bg3);border:1px dashed var(--border);">
+            <div style="font-size:20px;margin-bottom:6px;">📈</div>
+            <div class="tier-name" style="font-size:11px;">CAPEX Recommendation</div>
+            <div class="tier-desc">Final proposal with cost-benefit analysis</div>
+            <div style="margin-top:6px;"><span class="card-badge">Pending</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROADMAP -->
+    <div class="section" id="section-roadmap">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">Implementation Roadmap</div>
+          <div class="roadmap-phase">
+            <div class="phase-dot-col"><div class="phase-dot" style="background:var(--green);"></div><div class="phase-line"></div></div>
+            <div class="phase-content"><div class="phase-title">Phase 1: Sandbox</div><div class="phase-dur">4 Weeks</div><div class="phase-desc">Deploy MCP server with masked historical grid data. Validate the 4-tier algorithm on real load patterns.</div></div>
+          </div>
+          <div class="roadmap-phase">
+            <div class="phase-dot-col"><div class="phase-dot" style="background:var(--blue);"></div><div class="phase-line"></div></div>
+            <div class="phase-content"><div class="phase-title">Phase 2: Logic Tuning</div><div class="phase-dur">4 Weeks</div><div class="phase-desc">Calibrate 60% SoC cap incentive and pricing sensitivity models per zone.</div></div>
+          </div>
+          <div class="roadmap-phase">
+            <div class="phase-dot-col"><div class="phase-dot" style="background:var(--yellow);"></div><div class="phase-line"></div></div>
+            <div class="phase-content"><div class="phase-title">Phase 3: Operator UI</div><div class="phase-dur">4 Weeks</div><div class="phase-desc">Launch chat-based MCP interface for grid planning team with approve/edit/override controls.</div></div>
+          </div>
+          <div class="roadmap-phase">
+            <div class="phase-dot-col"><div class="phase-dot" style="background:var(--purple);"></div></div>
+            <div class="phase-content"><div class="phase-title">Phase 4: Pilot Deployment</div><div class="phase-dur">8 Weeks</div><div class="phase-desc">Live-run in HSR Layout + Koramangala to monitor load-shifting effectiveness.</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">Hackathon Build Plan (7 Days)</div>
+          <div id="hackathon-days"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title" style="margin-bottom:12px;">Key Risks &amp; Mitigations</div>
+        <div class="grid-3">
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--yellow);margin-bottom:6px;">⚠ User Adoption</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;">Users may ignore incentive nudges.</div>
+            <div class="divider" style="margin:8px 0;"></div>
+            <div style="font-size:11px;color:var(--green);">✓ Frame 60% SoC as battery health benefit, not load shedding.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--yellow);margin-bottom:6px;">⚠ Data Latency</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;">Real-time optimization depends on sensor freshness.</div>
+            <div class="divider" style="margin:8px 0;"></div>
+            <div style="font-size:11px;color:var(--green);">✓ Probabilistic modelling fills gaps in sensor data.</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--border);">
+            <div style="font-size:11px;font-weight:600;color:var(--yellow);margin-bottom:6px;">⚠ Over-Sensitivity</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;">False alarms for capacity breaches.</div>
+            <div class="divider" style="margin:8px 0;"></div>
+            <div style="font-size:11px;color:var(--green);">✓ Human-in-the-loop oversight via MCP approve/override.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"><div class="toast-title" id="toast-title"></div><div id="toast-body"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const zones = [
+  {name:'Whitefield',cap:8.5,load:7.65,evs:320,status:'red'},
+  {name:'HSR Layout',cap:6.0,load:5.52,evs:287,status:'red'},
+  {name:'Koramangala',cap:7.0,load:6.37,evs:264,status:'red'},
+  {name:'Indiranagar',cap:5.5,load:4.29,evs:198,status:'yellow'},
+  {name:'BTM Layout',cap:4.8,load:3.74,evs:156,status:'yellow'},
+  {name:'Electronic City',cap:9.0,load:6.12,evs:241,status:'yellow'},
+  {name:'Marathahalli',cap:6.5,load:4.55,evs:189,status:'yellow'},
+  {name:'Hebbal',cap:5.0,load:3.0,evs:134,status:'green'},
+  {name:'Yelahanka',cap:4.5,load:2.43,evs:97,status:'green'},
+  {name:'Jayanagar',cap:5.5,load:2.48,evs:103,status:'green'},
+  {name:'Rajajinagar',cap:5.0,load:3.25,evs:128,status:'yellow'},
+  {name:'Malleswaram',cap:4.5,load:2.7,evs:89,status:'green'},
+  {name:'Bannerghatta',cap:6.0,load:4.14,evs:165,status:'yellow'},
+  {name:'Sarjapur',cap:5.5,load:3.63,evs:143,status:'yellow'},
+  {name:'JP Nagar',cap:5.0,load:2.75,evs:108,status:'green'},
+];
+
+const chatResponses = {
+  'why is hsr layout showing a red alert?': `<strong>HSR Layout Zone Analysis:</strong><br><br>The zone is at <span class="inline-badge badge-red">92% capacity</span> due to peak-hour EV demand concentration.<br><br>📊 Current load: <strong>5.52 MW / 6.0 MW limit</strong><br>🚗 Active charging sessions: <strong>287 EVs</strong><br>⏰ Peak window: <strong>17:30 – 21:00</strong><br><br><strong>Actions already taken:</strong><br>• Tier 1: 60% SoC cap applied to 68 sessions (-0.4 MW relief)<br>• Tier 2: 38 users offered off-peak incentive (₹5.5/kWh vs ₹8/kWh)<br><br><strong>Recommendation:</strong> If demand continues, I recommend a new charging hub at <strong>12.92°N, 77.63°E</strong> — feeder capacity confirmed within 1.2 km.`,
+  'what should i do about koramangala overload?': `<strong>Koramangala Response Plan:</strong><br><br>Zone is at <span class="inline-badge badge-red">91% capacity</span>. Recommended cascade:<br><br><strong>Step 1 (Now):</strong> Apply 60% SoC cap to active sessions → estimated -0.5 MW relief<br><br><strong>Step 2 (Next 30 min):</strong> Send off-peak nudge to 42 users in the zone — save ₹25–40/session<br><br><strong>Step 3 (If Tier 1+2 fail):</strong> Redirect new arrivals to <span class="inline-badge badge-green">Jayanagar</span> (45% capacity, 3.2 km away) and <span class="inline-badge badge-green">JP Nagar</span> (55% capacity, 4.1 km)<br><br>Shall I <strong>approve all three steps</strong> automatically?`,
+  'which zones have capacity for redirection?': `<strong>Green Zone Availability:</strong><br><br>Available for immediate redirection:<br><br>🟢 <strong>Jayanagar</strong> — 45% utilisation, 2.25 MW free<br>🟢 <strong>JP Nagar</strong> — 55% utilisation, 2.25 MW free<br>🟢 <strong>Malleswaram</strong> — 60% utilisation, 1.8 MW free<br>🟢 <strong>Yelahanka</strong> — 54% utilisation, 2.07 MW free<br>🟢 <strong>Hebbal</strong> — 60% utilisation, 2.0 MW free`,
+  'recommend new charging hub locations': `<strong>Infrastructure Planning Report:</strong><br><br>Based on unmet demand analysis over the past 30 days, I recommend 2 new hubs:<br><br>📍 <strong>Priority 1: 12.9279°N, 77.6271°E</strong><br>HSR–Koramangala corridor, 220 kV feeder within 1.2 km<br>Estimated CAPEX: ₹1.8 Cr for 2 MW hub<br>Avoids full substation upgrade (~₹8.4 Cr saved)<br><br>📍 <strong>Priority 2: 12.9698°N, 77.7499°E</strong><br>Whitefield tech-park cluster, dedicated industrial feeder nearby<br>Estimated CAPEX: ₹2.1 Cr for 3 MW hub`,
+  'apply 60% soc cap to all critical zones': `<strong>SoC Cap Deployment:</strong><br><br>Applying 60% State-of-Charge cap to all <span class="inline-badge badge-red">3 critical zones</span>...<br><br>✅ HSR Layout — cap applied to 68 active sessions<br>✅ Koramangala — cap applied to 54 active sessions<br>✅ Whitefield — cap applied to 72 active sessions<br><br>📉 <strong>Estimated aggregate load relief: -1.3 MW</strong><br>⚡ Grid stress reduced from 92% peak → ~78%<br>🔋 Battery longevity message sent to all 194 affected users`,
+};
+
+const defaultResponse = (q) => `<strong>Query received:</strong> "${q}"<br><br>Processing via MCP server (on-premise)...<br><br>Grid is operating at <strong>73% average utilisation</strong> across 15 zones. 3 zones require attention. The 4-tier optimization engine is active.<br><br>Try asking about HSR Layout, Koramangala, or Whitefield — or request infrastructure recommendations.`;
+
+const pageTitles = {overview:'System Overview',zones:'Zone Monitor',optimizer:'Optimizer Engine',chat:'MCP Chat Interface',infra:'Infrastructure Planner',roadmap:'Roadmap & Risks'};
+
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[id] || id;
+}
+
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN',{hour12:false});
+}
+setInterval(updateClock, 1000);
+
+let baseEvs = 2847, baseLoad = 73;
+setInterval(() => {
+  baseEvs += Math.floor(Math.random()*6)-2;
+  baseLoad += (Math.random()*1.6)-0.8;
+  baseLoad = Math.max(68, Math.min(80, baseLoad));
+  document.getElementById('ov-evs').textContent = baseEvs.toLocaleString();
+  document.getElementById('ov-stress').textContent = Math.round(baseLoad)+'%';
+  document.getElementById('sb-evs').textContent = baseEvs.toLocaleString();
+  document.getElementById('sb-load').textContent = Math.round(baseLoad)+'%';
+}, 3000);
+
+function initDemandChart() {
+  const ctx = document.getElementById('demandChart').getContext('2d');
+  new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'],
+      datasets:[
+        {label:'Demand (MW)',data:[12,15,22,28,31,29,27,25,26,30,38,47,52],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.08)',tension:0.4,borderWidth:2,pointRadius:2},
+        {label:'Capacity (MW)',data:[60,60,60,60,60,60,60,60,60,60,60,60,60],borderColor:'rgba(99,179,237,0.4)',borderDash:[5,5],borderWidth:1.5,pointRadius:0,tension:0}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(99,179,237,0.06)'}},
+        y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(99,179,237,0.06)'}}
+      }
+    }
+  });
+}
+
+function buildZoneGrid() {
+  const grid = document.getElementById('zone-grid');
+  zones.forEach(z => {
+    const util = Math.round((z.load/z.cap)*100);
+    const div = document.createElement('div');
+    div.className = 'zone-cell zone-'+z.status;
+    div.innerHTML = `<div class="z-name">${z.name.split(' ')[0]}</div><div class="z-load">${util}%</div>`;
+    div.onclick = () => showZoneDetail(z);
+    grid.appendChild(div);
+  });
+}
+
+function showZoneDetail(z) {
+  const util = Math.round((z.load/z.cap)*100);
+  const sc = z.status==='red'?'var(--red)':z.status==='yellow'?'var(--yellow)':'var(--green)';
+  const sl = z.status==='red'?'Critical':z.status==='yellow'?'Caution':'Normal';
+  document.getElementById('zone-detail-content').innerHTML = `
+    <div style="margin-bottom:12px;"><span style="font-size:18px;font-weight:700;color:#fff;">${z.name}</span> <span class="card-badge" style="background:${sc}20;color:${sc};">${sl}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text3);">Capacity</span><span style="font-family:'JetBrains Mono',monospace;">${z.cap} MW</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text3);">Current Load</span><span style="font-family:'JetBrains Mono',monospace;color:${sc};">${z.load.toFixed(1)} MW</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;"><span style="color:var(--text3);">Utilisation</span><span style="font-family:'JetBrains Mono',monospace;color:${sc};">${util}%</span></div>
+    <div class="progress"><div class="progress-fill progress-${z.status==='red'?'red':z.status==='yellow'?'yellow':'green'}" style="width:${util}%;"></div></div>
+    <div style="display:flex;justify-content:space-between;margin:10px 0 4px;font-size:12px;"><span style="color:var(--text3);">Active EVs</span><span style="font-family:'JetBrains Mono',monospace;">${z.evs}</span></div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-success" onclick="showToast('60% SoC cap applied to ${z.evs} sessions in ${z.name}.','SoC Cap Applied')">Apply SoC Cap</button>
+      <button class="btn btn-warn" onclick="showToast('Off-peak nudge sent to users in ${z.name}.','Nudge Sent')">Send Nudge</button>
+    </div>`;
+}
+
+function buildZoneTable() {
+  const tbody = document.getElementById('zone-tbody');
+  zones.forEach(z => {
+    const util = Math.round((z.load/z.cap)*100);
+    const sc = z.status==='red'?'var(--red)':z.status==='yellow'?'var(--yellow)':'var(--green)';
+    const sl = z.status==='red'?'● Critical':z.status==='yellow'?'● Caution':'● Normal';
+    const tr = document.createElement('tr');
+    tr.style='border-bottom:1px solid var(--border);cursor:pointer;';
+    tr.onmouseenter=()=>tr.style.background='var(--bg3)';
+    tr.onmouseleave=()=>tr.style.background='';
+    tr.innerHTML=`<td style="padding:8px 6px;font-weight:500;">${z.name}</td><td style="padding:8px 6px;text-align:right;font-family:'JetBrains Mono',monospace;">${z.cap}</td><td style="padding:8px 6px;text-align:right;font-family:'JetBrains Mono',monospace;">${z.load.toFixed(1)}</td><td style="padding:8px 6px;text-align:right;font-family:'JetBrains Mono',monospace;color:${sc};">${util}%</td><td style="padding:8px 6px;text-align:right;font-family:'JetBrains Mono',monospace;">${z.evs}</td><td style="padding:8px 6px;text-align:right;color:${sc};font-size:11px;">${sl}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSoC(v) {
+  v = parseInt(v);
+  document.getElementById('soc-val').textContent = v+'%';
+  const lr = Math.round((100-v)*0.7);
+  document.getElementById('soc-load').textContent = '-'+lr+'%';
+  document.getElementById('soc-bar-fill').style.width = Math.min(100,lr*2)+'%';
+  document.getElementById('soc-window').textContent = (v/100*3.5).toFixed(1)+' hrs (vs 3.5 base)';
+  if(v<=60){document.getElementById('soc-battery').textContent='+'+Math.round((80-v)*0.5)+'% longevity ✓';document.getElementById('soc-battery').style.color='var(--green)';document.getElementById('soc-msg').textContent='Extend battery life';document.getElementById('soc-bar-fill').className='soc-fill soc-green';}
+  else if(v<=80){document.getElementById('soc-battery').textContent='Neutral impact';document.getElementById('soc-battery').style.color='var(--yellow)';document.getElementById('soc-msg').textContent='Balanced charge';document.getElementById('soc-bar-fill').className='soc-fill soc-yellow';}
+  else{document.getElementById('soc-battery').textContent='-'+Math.round((v-80)*0.3)+'% longevity impact';document.getElementById('soc-battery').style.color='var(--red)';document.getElementById('soc-msg').textContent='Full charge (not recommended)';document.getElementById('soc-bar-fill').className='soc-fill soc-red';}
+}
+
+let simRunning = false;
+function runSimulation(type) {
+  if(simRunning) return;
+  simRunning = true;
+  const out = document.getElementById('sim-output');
+  const isSevere = type==='severe';
+  out.innerHTML = '<span style="color:var(--text3);">⚡ Grid stress event detected…</span>';
+  const steps = isSevere ? [
+    {delay:400,text:`<div style="color:var(--yellow);margin-bottom:6px;font-size:12px;font-weight:600;">EVENT: Zone load spike to 92% — trigger threshold exceeded</div>`},
+    {delay:1000,text:`<div style="padding:8px;background:rgba(16,185,129,0.08);border-radius:6px;border-left:2px solid var(--green);margin-bottom:6px;"><strong style="color:var(--green);">Tier 1 — SoC Cap:</strong> <span style="color:var(--text2);">Applying 60% cap to 68 active sessions. Estimated relief: -0.4 MW.</span></div>`},
+    {delay:1800,text:`<div style="padding:8px;background:rgba(245,158,11,0.08);border-radius:6px;border-left:2px solid var(--yellow);margin-bottom:6px;"><strong style="color:var(--yellow);">Tier 2 — Pricing Nudge:</strong> <span style="color:var(--text2);">SoC cap insufficient (load still at 88%). Sending off-peak incentive to 38 users: ₹5.5/kWh at 23:00.</span></div>`},
+    {delay:2700,text:`<div style="padding:8px;background:rgba(59,130,246,0.08);border-radius:6px;border-left:2px solid var(--blue);margin-bottom:6px;"><strong style="color:var(--blue);">Tier 3 — Spatial Redirect:</strong> <span style="color:var(--text2);">4 new sessions redirected to Jayanagar (45%) and JP Nagar (55%). Combined relief: -0.2 MW.</span></div>`},
+    {delay:3600,text:`<div style="padding:8px;background:rgba(239,68,68,0.08);border-radius:6px;border-left:2px solid var(--red);margin-bottom:6px;"><strong style="color:var(--red);">Tier 4 — Infra Trigger:</strong> <span style="color:var(--text2);">Zone flagged for expansion review. Optimal hub location: 12.92°N, 77.63°E. CAPEX proposal queued.</span></div>`},
+    {delay:4200,text:`<div style="padding:8px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);"><strong style="color:var(--accent);">Result:</strong> <span style="color:var(--text2);">Load reduced from 92% → 81% via cascade. Human approval required for Tier 4 infra proposal. </span><span class="card-badge badge-yellow">Awaiting operator review</span></div>`},
+  ] : [
+    {delay:400,text:`<div style="color:var(--yellow);margin-bottom:6px;font-size:12px;font-weight:600;">EVENT: Zone load at 80% — soft threshold</div>`},
+    {delay:1000,text:`<div style="padding:8px;background:rgba(16,185,129,0.08);border-radius:6px;border-left:2px solid var(--green);margin-bottom:6px;"><strong style="color:var(--green);">Tier 1 — SoC Cap:</strong> <span style="color:var(--text2);">Proactively applying 60% cap to incoming sessions. No emergency action needed.</span></div>`},
+    {delay:1800,text:`<div style="padding:8px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);"><strong style="color:var(--accent);">Result:</strong> <span style="color:var(--text2);">Load stabilised at 74% — within operating range. Tiers 2, 3, 4 not triggered. </span><span class="card-badge badge-green">Resolved</span></div>`},
+  ];
+  let html = '';
+  steps.forEach(s => setTimeout(() => { html += s.text; out.innerHTML = html; simRunning = false; }, s.delay));
+}
+
+function resetSim() {
+  document.getElementById('sim-output').innerHTML = '<div style="color:var(--text3);">Run a simulation to see the optimizer in action.</div>';
+  simRunning = false;
+}
+
+function addMessage(text, isUser) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg '+(isUser?'msg-user':'msg-bot');
+  div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-meta">${isUser?'Operator':'MCP Copilot'} • just now</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showThinking() {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-bot'; div.id = 'thinking-msg';
+  div.innerHTML = '<div class="msg-bubble"><div class="thinking"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendChat(preset) {
+  const input = document.getElementById('chat-input');
+  const q = preset || input.value.trim();
+  if(!q) return;
+  input.value = '';
+  addMessage(q, true);
+  showThinking();
+  setTimeout(() => {
+    const th = document.getElementById('thinking-msg');
+    if(th) th.remove();
+    const resp = chatResponses[q.toLowerCase()] || defaultResponse(q);
+    addMessage(resp, false);
+    if(q.toLowerCase().includes('koramangala')||q.toLowerCase().includes('hsr')) {
+      const msgs = document.getElementById('chat-messages');
+      const actDiv = document.createElement('div');
+      actDiv.className = 'msg msg-bot';
+      actDiv.innerHTML = `<div class="msg-bubble" style="padding:10px;"><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-success" onclick="showToast('All recommended actions approved and executing.','Actions Approved')">✓ Approve All</button><button class="btn btn-ghost" onclick="showToast('Action queued for manual review.','Edit Mode')">✎ Edit</button><button class="btn btn-danger" onclick="showToast('Automated actions blocked. Manual mode only.','Override Active')">⊘ Override</button></div></div><div class="msg-meta">MCP Copilot • just now</div>`;
+      msgs.appendChild(actDiv);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  }, 1400);
+}
+
+function loadChat(s) { if(s==='hsr') setTimeout(()=>sendChat('Why is HSR Layout showing a red alert?'),200); }
+
+function buildInfraMap() {
+  const map = document.getElementById('infra-map');
+  const demands = [
+    {x:52,y:60,size:55,color:'rgba(239,68,68,0.75)',label:'HSR'},
+    {x:42,y:42,size:50,color:'rgba(239,68,68,0.65)',label:'Kora'},
+    {x:78,y:38,size:58,color:'rgba(239,68,68,0.7)',label:'White'},
+    {x:60,y:30,size:38,color:'rgba(245,158,11,0.65)',label:'Indira'},
+    {x:38,y:68,size:30,color:'rgba(245,158,11,0.6)',label:'BTM'},
+    {x:70,y:55,size:34,color:'rgba(245,158,11,0.6)',label:'Mara'},
+    {x:28,y:32,size:28,color:'rgba(245,158,11,0.55)',label:'Raja'},
+    {x:35,y:78,size:20,color:'rgba(16,185,129,0.6)',label:'Jaya'},
+    {x:28,y:88,size:18,color:'rgba(16,185,129,0.5)',label:'JP'},
+    {x:45,y:16,size:18,color:'rgba(16,185,129,0.5)',label:'Hebb'},
+  ];
+  demands.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'demand-node';
+    el.style.cssText = `left:${d.x}%;top:${d.y}%;width:${d.size}px;height:${d.size}px;transform:translate(-50%,-50%);background:${d.color};border:1px solid rgba(255,255,255,0.15);`;
+    el.innerHTML = `<span style="color:rgba(255,255,255,0.9);font-size:8px;">${d.label}</span>`;
+    map.appendChild(el);
+  });
+  const opt = document.createElement('div');
+  opt.className = 'optimal-marker';
+  opt.style.cssText = 'left:48%;top:52%;';
+  opt.textContent = '★';
+  map.appendChild(opt);
+  const lbl = document.createElement('div');
+  lbl.style.cssText = 'position:absolute;left:50%;top:60%;font-size:9px;color:var(--green);font-weight:700;white-space:nowrap;transform:translateX(-50%)';
+  lbl.textContent = 'Optimal Node';
+  map.appendChild(lbl);
+}
+
+function buildHackathonDays() {
+  const days = [
+    {day:'Day 1',focus:'Data Setup & Simulation',color:'var(--blue)'},
+    {day:'Day 2',focus:'Optimization Engine (4-tier logic)',color:'var(--green)'},
+    {day:'Day 3',focus:'MCP Chat Interface',color:'var(--purple)'},
+    {day:'Day 4',focus:'Visualization Dashboard',color:'var(--cyan)'},
+    {day:'Day 5',focus:'Smart Features & AI Intelligence',color:'var(--yellow)'},
+    {day:'Day 6',focus:'Infrastructure Planning Module',color:'var(--red)'},
+    {day:'Day 7',focus:'Demo Polish & Storytelling',color:'var(--accent)'},
+  ];
+  const c = document.getElementById('hackathon-days');
+  days.forEach(d => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);';
+    div.innerHTML = `<span style="font-size:10px;font-weight:700;color:${d.color};font-family:'JetBrains Mono',monospace;min-width:44px;">${d.day}</span><span style="font-size:12px;color:var(--text2);">${d.focus}</span>`;
+    c.appendChild(div);
+  });
+}
+
+function showToast(msg, title) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-body').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+window.addEventListener('load', () => {
+  initDemandChart();
+  buildZoneGrid();
+  buildZoneTable();
+  buildInfraMap();
+  buildHackathonDays();
+  updateClock();
+});
+</script>
+</body>
+</html>
